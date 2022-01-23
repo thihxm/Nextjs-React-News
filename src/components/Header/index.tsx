@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { SignInButton } from '../SignInButton'
 import styles from './styles.module.scss'
 

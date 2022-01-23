@@ -1,5 +1,6 @@
 import type { GetStaticProps, NextPage } from 'next'
 import Head from 'next/head'
+import Image from 'next/image'
 import SubscribeButton from '../components/SubscribeButton'
 import { stripe } from '../services/stripe'
 
