@@ -8,6 +8,7 @@ import { getSession } from 'next-auth/react'
 import { asHTML } from '@prismicio/helpers'
 import Head from 'next/head'
 import { ParsedUrlQuery } from 'querystring'
+import { Session } from 'next-auth'
 
 import { PrismicDocumentPost } from './types'
 import { PrismicClient } from '../../services/prismic'
@@ -47,16 +48,25 @@ interface PostPageParams extends ParsedUrlQuery {
   slug: string
 }
 
+interface UserSession extends Session {
+  activeSubscription: string
+}
+
 export const getServerSideProps: GetServerSideProps = async ({
   req,
   params,
 }) => {
-  const session = await getSession({ req })
+  const session = (await getSession({ req })) as UserSession
   const { slug } = params as PostPageParams
 
-  // if (!session) {
-
-  // }
+  if (!session.activeSubscription) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    }
+  }
 
   const prismic = PrismicClient()
 
