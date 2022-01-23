@@ -1,10 +1,11 @@
 import { GetStaticProps } from 'next'
 import Head from 'next/head'
-import { asHTML, asText } from '@prismicio/helpers'
-import PrismicTypes from '@prismicio/types'
+import { asText } from '@prismicio/helpers'
 
 import { PrismicClient } from '../../services/prismic'
 import styles from './styles.module.scss'
+import Link from 'next/link'
+import { PrismicDocumentPost, PrismicTextTypes } from './types'
 
 type Post = {
   slug: string
@@ -27,30 +28,19 @@ export default function Posts({ posts }: PostsProps) {
       <main className={styles['posts-container']}>
         <div className={styles['posts-list']}>
           {posts.map((post) => (
-            <a key={post.slug} href="">
-              <time>{post.updatedAt}</time>
-              <strong>{post.title}</strong>
-              <p>{post.excerpt}</p>
-            </a>
+            <Link key={post.slug} href={`/posts/${post.slug}`}>
+              <a>
+                <time>{post.updatedAt}</time>
+                <strong>{post.title}</strong>
+                <p>{post.excerpt}</p>
+              </a>
+            </Link>
           ))}
         </div>
       </main>
     </>
   )
 }
-
-type PrismicDocumentPost = PrismicTypes.PrismicDocument<
-  {
-    title: PrismicTypes.TitleField
-    content: PrismicTypes.RichTextField
-  },
-  'post',
-  'en-us'
->
-type PrismicTextTypes = Exclude<
-  PrismicTypes.RTNode,
-  PrismicTypes.RTImageNode | PrismicTypes.RTEmbedNode
->
 
 export const getStaticProps: GetStaticProps = async () => {
   const prismic = PrismicClient()
@@ -82,6 +72,5 @@ export const getStaticProps: GetStaticProps = async () => {
 
   return {
     props: { posts },
-    // revalidate: 60 * 60 * 24, // 24h
   }
 }
