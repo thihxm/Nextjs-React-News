@@ -1,16 +1,19 @@
 import { asText } from '@prismicio/richtext'
-import { GetServerSideProps } from 'next'
-import { getSession } from 'next-auth/react'
+import { GetStaticProps } from 'next'
+import { getSession, useSession } from 'next-auth/react'
 import { asHTML } from '@prismicio/helpers'
 import Head from 'next/head'
 import { ParsedUrlQuery } from 'querystring'
 import { Session } from 'next-auth'
 
-import { PrismicDocumentPost } from './types'
-import { PrismicClient } from '../../services/prismic'
-import styles from './post.module.scss'
+import { PrismicDocumentPost } from '../types'
+import { PrismicClient } from '../../../services/prismic'
+import styles from '../post.module.scss'
+import Link from 'next/link'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
 
-interface PostProps {
+interface PostPreviewProps {
   post: {
     slug: string
     title: string
@@ -19,7 +22,16 @@ interface PostProps {
   }
 }
 
-export default function Post({ post }: PostProps) {
+export default function PostPreview({ post }: PostPreviewProps) {
+  const { data } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (data.session?.activeSubscription) {
+      router.push(`/posts/${post.slug}`)
+    }
+  }, [data, post.slug, router])
+
   return (
     <>
       <Head>
@@ -31,9 +43,16 @@ export default function Post({ post }: PostProps) {
           <h1>{post.title}</h1>
           <time>{post.updatedAt}</time>
           <div
-            className={styles['post-content']}
+            className={`${styles['post-content']} ${styles['preview-content']}`}
             dangerouslySetInnerHTML={{ __html: post.content }}
-          ></div>
+          />
+
+          <div className={styles['continue-reading']}>
+            Wanna continue reading?
+            <Link href="/">
+              <a href="">Subscribe now 🤗</a>
+            </Link>
+          </div>
         </article>
       </main>
     </>
@@ -44,25 +63,15 @@ interface PostPageParams extends ParsedUrlQuery {
   slug: string
 }
 
-interface UserSession extends Session {
-  activeSubscription: string
+export const getStaticPaths = () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  }
 }
 
-export const getServerSideProps: GetServerSideProps = async ({
-  req,
-  params,
-}) => {
-  const session = (await getSession({ req })) as UserSession
+export const getStaticProps: GetStaticProps = async ({ params }) => {
   const { slug } = params as PostPageParams
-
-  if (!session?.activeSubscription) {
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false,
-      },
-    }
-  }
 
   const prismic = PrismicClient()
 
@@ -74,7 +83,7 @@ export const getServerSideProps: GetServerSideProps = async ({
   const post = {
     slug,
     title: asText(response.data.title),
-    content: asHTML(response.data.content),
+    content: asHTML(response.data.content.splice(0, 3)),
     updatedAt: new Date(response.last_publication_date).toLocaleDateString(
       'en-US',
       {
@@ -87,5 +96,6 @@ export const getServerSideProps: GetServerSideProps = async ({
 
   return {
     props: { post },
+    revalidate: 60 * 30, // 30min
   }
 }
